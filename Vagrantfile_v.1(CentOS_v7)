@@ -12,7 +12,7 @@ Vagrant.configure("2") do |config|
 
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://vagrantcloud.com/search.
-  config.vm.box = "offensive-security/kali-linux"
+  config.vm.box = "centos/7"
 
   # The url from where the 'config.vm.box' box will be fetched if it
   # doesn't already exist on the user's system.
@@ -55,8 +55,8 @@ Vagrant.configure("2") do |config|
   #   # Устанавливаем выборочный размер ОЗУ гостевой машины в 2 ГБ:
      vb.memory = "2048"
      vb.customize ["modifyvm", :id, "--cpus", 2] # Изменяем количество ядер CPU, Выделяемых костевому контейнеру ВМ
-     vb.name = "Kali Linux 2019.2" # Разрешаем корректный Вывод имени на хосте провайдера ВМ, Вместо имени каталога с конфиком  Vagrant 
-     ip_addr = '192.168.20.21' # Назначаем ip-адрес гостю
+     vb.name = "CentOS_v7" # Разрешаем корректный Вывод имени на хосте провайдера ВМ, Вместо имени каталога с конфиком  Vagrant 
+     ip_addr = '192.168.20.20' # Назначаем ip-адрес гостю
      netmask = 16 # Выбираем пул гостевой подсети
    end
    
