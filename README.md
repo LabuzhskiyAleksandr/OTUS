@@ -1,7 +1,7 @@
 # OTUS
 HomeWorks
 
-Цель второй домашней работы – освоение практических примеров использования chroot, apparmor, pam.d, polkit.
+### Цель второй домашней работы – освоение практических примеров использования chroot, apparmor, pam.d, polkit.
 
 Для реализации поставленной цели был взят Vagrantfile из материалов и развёрнута лабораторная среда, представленная набором из
 2-х виртуальных машин: CentOS и Ubuntu.
@@ -1968,6 +1968,6 @@ labuzhskiy@MINT-LIN-CIN-X64 ~/.vagrant.d/boxes/4lesson-dz $ curl http://192.168.
 <hr><centre>nginx/1.14.0 (Ubuntu)</centre>
 </body>
 </html>
-Работает :) копии конфигов прилагаю.
+Работает. копии конфигов прилагаю. архивами o2.tar.gz (для Pam.d), polkitd.tar.gz (для PolicyKit-1), usr.sbin.nginx.tar.gz (для Apparmor).
 
 
