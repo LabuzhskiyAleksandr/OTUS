@@ -1968,6 +1968,247 @@ labuzhskiy@MINT-LIN-CIN-X64 ~/.vagrant.d/boxes/4lesson-dz $ curl http://192.168.
 <hr><centre>nginx/1.14.0 (Ubuntu)</centre>
 </body>
 </html>
-Работает. копии конфигов прилагаю. архивами o2.tar.gz (для Pam.d), polkitd.tar.gz (для PolicyKit-1), usr.sbin.nginx.tar.gz (для Apparmor).
+
+### chroot
+
+1. Настраиваем Chroot окружение по статье, описанной по следующей ссылке:
+https://www.tecmint.com/restrict-ssh-user-to-directory-using-chrooted-jail/
+
+labuzhskiy@MINT-LIN-CIN-X64 ~ $ mc
+
+labuzhskiy@MINT-LIN-CIN-X64 ~/.vagrant.d/boxes/4lesson-dz $ vagrant ssh centos
+Last login: Sat Sep  7 19:39:29 2019 from 10.0.2.2
+[vagrant@centos ~]$ sudo su -
+Last login: Sat Sep  7 19:39:39 UTC 2019 on pts/0
+[root@centos ~]# mkdir -p /home/o3
+[root@centos ~]# mc
+
+[root@centos ssh]# ls -l /dev/{null,zero,stdin,stdout,stderr,random,tty}
+crw-rw-rw-. 1 root root 1, 3 Sep  8 08:30 /dev/null
+crw-rw-rw-. 1 root root 1, 8 Sep  8 08:30 /dev/random
+lrwxrwxrwx. 1 root root   15 Sep  8 08:30 /dev/stderr -> /proc/self/fd/2
+lrwxrwxrwx. 1 root root   15 Sep  8 08:30 /dev/stdin -> /proc/self/fd/0
+lrwxrwxrwx. 1 root root   15 Sep  8 08:30 /dev/stdout -> /proc/self/fd/1
+crw-rw-rw-. 1 root tty  5, 0 Sep  8 08:30 /dev/tty
+crw-rw-rw-. 1 root root 1, 5 Sep  8 08:30 /dev/zero
+
+[root@centos ssh]# mkdir -p /home/o3/dev/
+[root@centos ssh]# cd /home/o3/dev/
+[root@centos dev]# mknod -m 666 null c 1 3
+[root@centos dev]# mknod -m 666 tty c 5 0
+[root@centos dev]# mknod -m 666 zero c 1 5
+[root@centos dev]# mknod -m 666 random c 1 8
+[root@centos dev]# chown root:root /home/o3
+[root@centos dev]# chmod 0755 /home/o3
+[root@centos dev]# ls -ld /home/o3
+drwxr-xr-x. 3 root root 17 Sep  8 08:37 /home/o3
+[root@centos dev]# mkdir -p /home/o3/bin
+
+[root@centos o3]# cp -v /bin/bash /home/o3/bin/
+‘/bin/bash’ -> ‘/home/o3/bin/bash’
+[root@centos o3]# cp -v /bin/bash /home/o3/bin/
+‘/bin/bash’ -> ‘/home/o3/bin/bash’
+[root@centos o3]# ldd /bin/bash
+	linux-vdso.so.1 =>  (0x00007fffa0180000)
+	libtinfo.so.5 => /lib64/libtinfo.so.5 (0x00007f6a52666000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007f6a52462000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f6a52095000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f6a52890000)
+[root@centos o3]# mkdir -p /home/o3/lib64
+[root@centos o3]# cp -v /lib64/{libtinfo.so.5,libdl.so.2,libc.so.6,ld-linux-x86-64.so.2} /home/o3/lib64/
+‘/lib64/libtinfo.so.5’ -> ‘/home/o3/lib64/libtinfo.so.5’
+‘/lib64/libdl.so.2’ -> ‘/home/o3/lib64/libdl.so.2’
+‘/lib64/libc.so.6’ -> ‘/home/o3/lib64/libc.so.6’
+‘/lib64/ld-linux-x86-64.so.2’ -> ‘/home/o3/lib64/ld-linux-x86-64.so.2’
+[root@centos o3]# 
+[root@centos o3]# passwd otus3
+Changing password for user otus3.
+New password: 
+Retype new password: 
+passwd: all authentication tokens updated successfully.
+[root@centos o3]# mkdir /home/o3/etc
+[root@centos o3]# cp -vf /etc/{passwd,group} /home/o3/etc/
+‘/etc/passwd’ -> ‘/home/o3/etc/passwd’
+‘/etc/group’ -> ‘/home/o3/etc/group’
+[root@centos o3]# 
+[root@centos otus3]# chown -R otus3:otus3 /home/otus3/.ssh
+[root@centos otus3]# ll /home/otus3/.ssh
+total 4
+-rw-------. 1 otus3 otus3 389 Sep  1 09:41 authorized_keys
+[root@centos o3]# ll /home/o3/.ssh
+total 4
+-rw-------. 1 otus3 otus3 389 Sep  1 09:41 authorized_keys
+[root@centos /]# su - otus3
+Last login: Sun Sep  8 13:40:40 UTC 2019 on pts/1
+[otus3@centos ~]$ 
+
+Приводим конфигурационный файл sshd_config к следующему виду:
+
+[root@centos /]# cat /etc/ssh/sshd_config
+#	$OpenBSD: sshd_config,v 1.100 2016/08/15 12:32:04 naddy Exp $
+
+# This is the sshd server system-wide configuration file.  See
+# sshd_config(5) for more information.
+
+# This sshd was compiled with PATH=/usr/local/bin:/usr/bin
+
+# The strategy used for options in the default sshd_config shipped with
+# OpenSSH is to specify options with their default value where
+# possible, but leave them commented.  Uncommented options override the
+# default value.
+
+# If you want to change the port on a SELinux system, you have to tell
+# SELinux about this change.
+# semanage port -a -t ssh_port_t -p tcp #PORTNUMBER
+#
+#Port 22
+#AddressFamily any
+#ListenAddress 0.0.0.0
+#ListenAddress ::
+
+HostKey /etc/ssh/ssh_host_rsa_key
+#HostKey /etc/ssh/ssh_host_dsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+
+# Ciphers and keying
+#RekeyLimit default none
+
+# Logging
+#SyslogFacility AUTH
+SyslogFacility AUTHPRIV
+#LogLevel INFO
+
+# Authentication:
+
+#LoginGraceTime 2m
+#PermitRootLogin yes
+#StrictModes yes
+#MaxAuthTries 6
+#MaxSessions 10
+
+AllowUsers otus2 otus3 vagrant
+DenyUsers root
+
+
+#PubkeyAuthentication yes
+
+# The default is to check both .ssh/authorized_keys and .ssh/authorized_keys2
+# but this is overridden so installations will only check .ssh/authorized_keys
+AuthorizedKeysFile	.ssh/authorized_keys
+
+#AuthorizedPrincipalsFile none
+
+#AuthorizedKeysCommand none
+#AuthorizedKeysCommandUser nobody
+
+# For this to work you will also need host keys in /etc/ssh/ssh_known_hosts
+#HostbasedAuthentication no
+# Change to yes if you don't trust ~/.ssh/known_hosts for
+# HostbasedAuthentication
+#IgnoreUserKnownHosts no
+# Don't read the user's ~/.rhosts and ~/.shosts files
+#IgnoreRhosts yes
+
+# To disable tunneled clear text passwords, change to no here!
+#PasswordAuthentication yes
+#PermitEmptyPasswords no
+PasswordAuthentication no
+
+# Change to no to disable s/key passwords
+#ChallengeResponseAuthentication yes
+ChallengeResponseAuthentication no
+
+# Kerberos options
+#KerberosAuthentication no
+#KerberosOrLocalPasswd yes
+#KerberosTicketCleanup yes
+#KerberosGetAFSToken no
+#KerberosUseKuserok yes
+
+# GSSAPI options
+GSSAPIAuthentication yes
+GSSAPICleanupCredentials no
+#GSSAPIStrictAcceptorCheck yes
+#GSSAPIKeyExchange no
+#GSSAPIEnablek5users no
+
+# Set this to 'yes' to enable PAM authentication, account processing,
+# and session processing. If this is enabled, PAM authentication will
+# be allowed through the ChallengeResponseAuthentication and
+# PasswordAuthentication.  Depending on your PAM configuration,
+# PAM authentication via ChallengeResponseAuthentication may bypass
+# the setting of "PermitRootLogin without-password".
+# If you just want the PAM account and session checks to run without
+# PAM authentication, then enable this but set PasswordAuthentication
+# and ChallengeResponseAuthentication to 'no'.
+# WARNING: 'UsePAM no' is not supported in Red Hat Enterprise Linux and may cause several
+# problems.
+UsePAM yes
+
+#AllowAgentForwarding yes
+#AllowTcpForwarding yes
+#GatewayPorts no
+X11Forwarding yes
+#X11DisplayOffset 10
+#X11UseLocalhost yes
+#PermitTTY yes
+#PrintMotd yes
+#PrintLastLog yes
+#TCPKeepAlive yes
+#UseLogin no
+#UsePrivilegeSeparation sandbox
+#PermitUserEnvironment no
+#Compression delayed
+#ClientAliveInterval 0
+#ClientAliveCountMax 3
+#ShowPatchLevel no
+#UseDNS yes
+UseDNS no
+#PidFile /var/run/sshd.pid
+#MaxStartups 10:30:100
+#PermitTunnel no
+#ChrootDirectory /home/o3
+#VersionAddendum none
+
+# no default banner path
+#Banner none
+
+# Accept locale-related environment variables
+AcceptEnv LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES
+AcceptEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT
+AcceptEnv LC_IDENTIFICATION LC_ALL LANGUAGE
+AcceptEnv XMODIFIERS
+
+# override default of no subsystems
+Subsystem	sftp	/usr/libexec/openssh/sftp-server
+
+# Example of overriding settings on a per-user basis
+####порядок строк имеет значение и обязательно располагаем их в конце файла.
+Match User otus3
+ChrootDirectory /home/o3
+#	X11Forwarding no
+#	AllowTcpForwarding no
+#	PermitTTY no
+#	ForceCommand cvs server
+
+Проверяем себя:
+
+labuzhskiy@MINT-LIN-CIN-X64 ~/.vagrant.d/boxes/4lesson-dz $ ssh -i  ~/.vagrant.d/boxes/4lesson-dz/.vagrant/machines/centos/virtualbox/private_key vagrant@127.0.0.1 -p 2222
+Last login: Sun Sep  8 14:02:55 2019 from 10.0.2.2
+[vagrant@centos ~]$ exit
+logout
+Connection to 127.0.0.1 closed.
+labuzhskiy@MINT-LIN-CIN-X64 ~/.vagrant.d/boxes/4lesson-dz $ ssh -i  ~/.vagrant.d/boxes/4lesson-dz/.vagrant/machines/centos/virtualbox/private_key otus3@127.0.0.1 -p 2222
+Last login: Sun Sep  8 14:02:12 2019 from 10.0.2.2
+-bash-4.2$ exit
+logout
+Connection to 127.0.0.1 closed.
+labuzhskiy@MINT-LIN-CIN-X64 ~/.vagrant.d/boxes/4lesson-dz $ 
+
+
+
+
+Работает. копии конфигов прилагаю. архивами o2.tar.gz (для Pam.d), polkitd.tar.gz (для PolicyKit-1), usr.sbin.nginx.tar.gz (для Apparmor), SSH_Chroot.tar.gz(Chroot для учётной записи Otus3).
 
 
